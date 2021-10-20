@@ -1,0 +1,7 @@
+---
+
+ansible_network_os: ios
+ansible_user: prime
+ansible_password: ultraFin0
+
+...

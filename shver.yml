@@ -1,0 +1,17 @@
+---
+  - name: Show-Version
+    hosts: switches
+    gather_facts: no
+    connection: network_cli
+
+    tasks:
+
+      - name: Version
+        ios_command:
+          commands: show version
+        register: result
+
+      - name: Muestra
+        debug:
+          var: result
+...

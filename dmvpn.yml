@@ -1,0 +1,123 @@
+---
+  - name: Configura Router remoto DMVPN
+    hosts: routers
+    gather_facts: no
+    connection: network_cli
+
+    vars_prompt:
+      - name: "iplocal"
+        prompt: "Ingrese ultimo octeto de direccion IP del tunel"
+        private: no
+
+      - name: "red_dgsiaf"
+        prompt: "Ingrese red /30 asignada por DGSIAF"
+        private: no
+
+      - name: "loopback"
+        prompt: "Ingrese numero de la loopback del router remoto"
+        private: no
+
+    tasks:
+
+      - name: Configura IKEv2 Keyring
+        ios_config:
+          lines:
+          - peer ANY
+          - address 0.0.0.0 0.0.0.0
+          - pre-shared-key kptsdm2K20
+          parents: crypto ikev2 keyring KEY-Tunel_SAF
+
+      - name: Configura IKEv2 Profile
+        ios_config:
+          lines:
+          - match identity remote address 0.0.0.0
+          - authentication remote pre-share
+          - authentication local pre-share
+          - keyring KEY-Tunel_SAF
+          parents: crypto ikev2 profile Tunel-IKE-PROFILE
+
+      - name: Configura IPSEC Transform-set
+        ios_config:
+          lines:
+          - mode transport
+          parents: crypto ipsec transform-set AES-SHA-TRANSPORT esp-aes esp-sha-hmac
+
+      - name: Configura IPSEC Profile
+        ios_config:
+          lines:
+          - set transform-set AES-SHA-TRANSPORT
+          - set ikev2-profile Tunel-IKE-PROFILE
+          parents: crypto ipsec profile Perfil-Tunel-IPSEC
+
+
+      - name: Configura interfaz Tunel0
+        ios_config:
+          lines: 
+          - description a RouterMAN
+          - bandwidth 10240
+          - ip address 172.27.252.{{ iplocal }} 255.255.255.224
+          - ip mtu 1400
+          - ip nhrp network-id 40
+          - ip nhrp nhs 172.27.252.97 nbma 172.16.255.253 multicast
+          - ip tcp adjust-mss 1360
+          - ip ospf message-digest-key 1 md5 0 m3ss1
+          - ip ospf priority 0
+          - ip ospf network broadcast
+          - tunnel source Loopback {{ loopback }}
+          - tunnel destination 172.16.255.253
+          - tunnel key 40
+          - tunnel protection ipsec profile Perfil-Tunel-IPSEC
+          parents: interface Tunnel0
+
+      - name: Configura interfaz Tunel1
+        ios_config:
+          lines: 
+          - description a RouterP13MAN
+          - bandwidth 10240
+          - ip address 172.27.253.{{ iplocal }} 255.255.255.224
+          - ip mtu 1400
+          - ip nhrp network-id 40
+          - ip nhrp nhs 172.27.253.97 nbma 172.16.255.254 multicast
+          - ip tcp adjust-mss 1360
+          - ip ospf message-digest-key 1 md5 0 m3ss1
+          - ip ospf priority 0
+          - ip ospf network broadcast
+          - tunnel source Loopback {{ loopback }}
+          - tunnel destination 172.16.255.254
+          - tunnel key 40
+          - tunnel protection ipsec profile Perfil-Tunel-IPSEC
+          parents: interface Tunnel1
+
+      - name: Configura OSPF
+        ios_config:
+          lines:
+          - area 100 authentication message-digest
+          - redistribute connected subnets
+          - network 172.27.252.96 0.0.0.31 area 100
+          - network 172.27.253.96 0.0.0.31 area 100
+          - distribute-list prefix Rutas_hacia_Mecon out
+          - distribute-list prefix Rutas_Propias in
+          parents: router ospf 100
+
+      - name: Configura Prefix-lists           
+        ios_config:
+          lines:
+          - ip prefix-list Rutas_Propias seq 4 permit 172.27.255.0/28
+          - ip prefix-list Rutas_Propias seq 5 permit 172.20.6.0/24
+          - ip prefix-list Rutas_Propias seq 6 permit 172.20.7.0/24
+          - ip prefix-list Rutas_Propias seq 10 permit 172.20.16.0/27
+          - ip prefix-list Rutas_hacia_Mecon seq 5 permit {{ red_dgsiaf }}/30
+
+      - name: Comandos globales
+        ios_config:
+          lines:
+          - service timestamps log datetime localtime
+          - service timestamps debug datetime localtime
+          - clock timezone ARG -3
+          - service password-encryption
+          - no ip http server
+          - no ip http secure-server
+
+#          save_when: changed
+
+...

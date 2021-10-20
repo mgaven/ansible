@@ -1,0 +1,15 @@
+---
+  - name: Prueba_playbook
+    hosts: switches
+    gather_facts: no
+    connection: network_cli
+
+    tasks:
+
+      - name: Pone banner
+        ios_banner:
+          banner: login
+          text: Banner hecho con Ansible!
+          state: present
+
+...

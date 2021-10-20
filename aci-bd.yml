@@ -1,0 +1,51 @@
+---
+- name: Agrega EPG/Bridge Domain
+  hosts: apic
+  connection: local
+  gather_facts: False
+  
+  vars:
+    - tenant: Hacienda
+    - ansible_user: admin
+    - ansible_password: P4ssw0rd123$
+
+  vars_prompt:
+    - name: "bdomain"
+      prompt: "Ingrese nombre del EPG/BD (Formato VLANxx_descripcion)"
+      private: no
+
+    - name: "vrf"
+      prompt: "Ingrese VRF para el EPG/BD (Backbone/Datacenter/Transporte)"
+      private: no
+
+  tasks:
+
+    - name: Crea Bridge Domain
+      aci_bd:
+        host: "{{ ansible_host }}"
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        state: "present"
+        validate_certs: False
+        tenant: "{{ tenant }}"
+        bd: "{{ bdomain }}"
+        vrf: "{{ vrf }}"
+#       vrf: "{{ vrf | default('Backbone') }}"
+        l2_unknown_unicast: flood
+        arp_flooding: yes
+        description: "BD Created Using Ansible"
+
+    - name: Crea EPG
+      aci_epg:
+        host: "{{ ansible_host }}"
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        state: "present"
+        tenant: "{{ tenant }}"
+        bd: "{{ bdomain }}"
+        ap: "{{ vrf }}"
+        epg: "{{ bdomain }}"
+        validate_certs: False
+
+...
+

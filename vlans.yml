@@ -1,0 +1,15 @@
+---
+  - name: Prueba_playbook
+    hosts: switches
+    gather_facts: no
+    connection: network_cli
+
+    tasks:
+
+      - name: Borra vlan 217
+        ios_config:
+          lines:
+            no vlan 217
+          save_when: changed
+
+...

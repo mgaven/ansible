@@ -1,0 +1,26 @@
+---
+- name: Muestra VRFs
+  hosts: apic
+  connection: local
+  gather_facts: False
+
+  vars:
+    - tenant: Hacienda
+    - ansible_user: admin
+    - ansible_password: P4ssw0rd123$
+
+  tasks:
+    - name: Verifica VRF, el default es Backbone
+      aci_vrf:
+        host: "{{ ansible_host }}"
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        state: "query"
+        validate_certs: False
+        tenant: "{{ tenant }}"
+      register: vrf_query
+
+    - debug:
+        var: vrf_query
+
+...

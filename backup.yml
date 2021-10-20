@@ -1,0 +1,14 @@
+---
+  - name: Prueba_playbook
+    hosts: switches
+    gather_facts: no
+    connection: network_cli
+
+    tasks:
+
+      - name: Backups
+        ios_config:
+          backup: yes
+        when: ansible_network_os =='ios'
+
+...
